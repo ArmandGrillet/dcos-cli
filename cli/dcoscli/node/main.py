@@ -80,8 +80,9 @@ def _cmds():
 
         cmds.Command(
             hierarchy=['node', 'ssh'],
-            arg_keys=['--leader', '--mesos-id', '--option', '--config-file',
-                      '--user', '--master-proxy', '--proxy-ip', '<command>'],
+            arg_keys=['--leader', '--mesos-id', '--hostname', '--option',
+                      '--config-file', '--user', '--master-proxy',
+                      '--proxy-ip', '<command>'],
             function=_ssh),
 
         cmds.Command(
@@ -707,8 +708,8 @@ def _mesos_files(leader, slave_id):
     return files
 
 
-def _ssh(leader, slave, option, config_file, user, master_proxy, proxy_ip,
-         command):
+def _ssh(leader, slave, hostname, option, config_file, user, master_proxy,
+         proxy_ip, command):
     """SSH into a DC/OS node using the IP addresses found in master's
        state.json
 
@@ -717,6 +718,8 @@ def _ssh(leader, slave, option, config_file, user, master_proxy, proxy_ip,
     :type leader: bool | None
     :param slave: The slave ID if the user has opted to SSH into a slave
     :type slave: str | None
+    :param hostname: The private IP address of the node we want to SSH to.
+    :type hostname: str | None
     :param option: SSH option
     :type option: [str]
     :param config_file: SSH config file
@@ -741,12 +744,18 @@ def _ssh(leader, slave, option, config_file, user, master_proxy, proxy_ip,
     else:
         summary = dcos_client.get_state_summary()
         slave_obj = next((slave_ for slave_ in summary['slaves']
-                          if slave_['id'] == slave),
+                          if slave_['id'] == slave or slave_['hostname'] ==
+                          hostname),
                          None)
         if slave_obj:
             host = mesos.parse_pid(slave_obj['pid'])[1]
         else:
-            raise DCOSException('No slave found with ID [{}]'.format(slave))
+            if slave:
+                raise DCOSException('No slave found with ID [{}]'
+                                    .format(slave))
+            elif hostname:
+                raise DCOSException('No slave found with hostname [{}]'
+                                    .format(hostname))
 
     if command is None:
         command = ''
