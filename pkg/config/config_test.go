@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var cfgStr = `
+var configString = `
 [core]
 ssl_verify = "/home/mesosphere/.dcos/clusters/456934a6-fc1f-4d52-9419-a4c722abe2da/dcos_ca.crt"
 dcos_url = "https://dcos.example.com"
@@ -21,7 +21,7 @@ name = "mr-cluster-1835928138"
 `
 
 func TestStringAt(t *testing.T) {
-	cfg, err := FromString(cfgStr)
+	config, err := FromString(configString)
 	require.NoError(t, err)
 
 	expectedOutputs := []struct {
@@ -36,14 +36,14 @@ func TestStringAt(t *testing.T) {
 	}
 
 	for _, expectedOutput := range expectedOutputs {
-		out, err := cfg.StringAt(expectedOutput.key)
+		out, err := config.StringAt(expectedOutput.key)
 		require.NoError(t, err)
 		require.Equal(t, expectedOutput.out, out)
 	}
 }
 
 func TestString(t *testing.T) {
-	cfg, err := FromString(cfgStr)
+	config, err := FromString(configString)
 	require.NoError(t, err)
 
 	expectedOutput := `core.dcos_acs_token ********
@@ -53,15 +53,15 @@ cluster.name mr-cluster-1835928138
 marathon.dummy qwerty
 marathon.url https://marathon.dcos.example.com
 `
-	require.Equal(t, expectedOutput, cfg.String())
+	require.Equal(t, expectedOutput, config.String())
 }
 
 func TestSSL(t *testing.T) {
 
 	expectedSSL := []struct {
-		cfg      string
-		insecure bool
-		capath   string
+		config string
+		secure bool
+		capath string
 	}{
 		{"[core]\nssl_verify = \"True\"", false, ""},
 		{"[core]\nssl_verify = \"true\"", false, ""},
@@ -71,9 +71,9 @@ func TestSSL(t *testing.T) {
 	}
 
 	for _, exp := range expectedSSL {
-		cfg, err := FromString(exp.cfg)
+		config, err := FromString(exp.config)
 		require.NoError(t, err)
-		require.Equal(t, exp.insecure, cfg.Core.SSL.Insecure())
-		require.Equal(t, exp.capath, cfg.Core.SSL.CAPath())
+		require.Equal(t, exp.secure, config.Core.SSL.Insecure())
+		require.Equal(t, exp.capath, config.Core.SSL.CAPath())
 	}
 }
