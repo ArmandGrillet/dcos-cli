@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/dcos/dcos-cli/pkg/uriresolver"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	yaml "gopkg.in/yaml.v2"
@@ -32,6 +33,34 @@ type Package struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Version     string `json:"version"`
+}
+
+const TypeExe string = "executable"
+const TypeZip string = "zip"
+
+// Resource represents a resource that we want to download.
+type Resource struct {
+	Name string
+	Type string
+	URI  string
+}
+
+func (m *Manager) Install(res Resource) error {
+	uriResolver := uriresolver.New([]string{"file", "https", "http"})
+	uri, err := uriResolver.Resolve(res.URI)
+	if err != nil {
+		return err
+	}
+
+	// Download resource into tmp folder if remote
+	switch res.Type {
+	case TypeZip:
+		return m.installZip(uri, name)
+	case TypeExe:
+		return m.installExe(uri, name)
+	default:
+		return errors.New("unknown resource type %s", res.Type)
+	}
 }
 
 // Plugins returns the plugins associated with the current cluster.
