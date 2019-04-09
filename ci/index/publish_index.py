@@ -3,7 +3,8 @@
 import os
 import boto3
 
-BUCKET="downloads.dcos.io"
+OSS_BUCKET="downloads.dcos.io"
+EE_BUCKET="downloads.mesosphere.io"
 PREFIX="cli"
 INDEX_FILE="index.html"
 ASSETS_FOLDER="html"
@@ -28,12 +29,6 @@ def upload_file(client, src, dst):
         ExtraArgs={
             "ACL": "bucket-owner-full-control",
             "ContentType": types[ext]})
-
-    client.put_object_acl(
-        Bucket=BUCKET,
-        Key=dst,
-        ACL="public-read")
-
 
 client = boto3.client('s3', region_name='us-west-2')
 objects = client.list_objects(Bucket=BUCKET, Prefix=PREFIX)['Contents']

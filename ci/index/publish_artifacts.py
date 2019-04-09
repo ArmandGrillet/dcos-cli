@@ -7,7 +7,7 @@ import re
 import boto3
 
 from publish_index import upload_file
-from publish_index import BUCKET
+from publish_index import OSS_BUCKET, EE_BUCKET
 from publish_index import PREFIX
 from publish_index import ASSETS_FOLDER
 
@@ -51,14 +51,21 @@ def natural_sort(l):
     return sorted(l, key = alphanum_key)
 
 
-client = boto3.client('s3', region_name='us-west-2')
-objects = client.list_objects(Bucket=BUCKET, Prefix=PREFIX)['Contents']
+read_client = boto3.client('s3', region_name='us-west-2', aws_access_key_id=os.environ['AWS_READ_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_READ_SECRET_ACCESS_KEY'])
+write_client = boto3.client('s3', region_name='us-west-2', aws_access_key_id=os.environ['AWS_WRITE_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_WRITE_SECRET_ACCESS_KEY'])
+oss_objects = read_client.list_objects(Bucket=OSS_BUCKET, Prefix=PREFIX)['Contents']
+ee_objects = read_client.list_objects(Bucket=EE_BUCKET, Prefix=PREFIX)['Contents']
 
 with open(ARTIFACTS_FILE, mode='w+') as f:
     contents = { "artifacts": [] }
-    for o in filter_objects(objects):
+    for o in filter_objects(oss_objects):
         contents["artifacts"].append(format_path(o))
+    for o in filter_objects(ee_objects):
+        contents["artifacts"].append(format_path(o))
+
+    # Remove duplicates and order list.
+    contents["artifacts"] = list(dict.fromkeys(contents["artifacts"]))
     contents["artifacts"] = natural_sort(contents["artifacts"])
     f.write(json.dumps(contents))
 
-upload_file(client, ARTIFACTS_FILE, PREFIX + '/' + ARTIFACTS_FILE)
+upload_file(write_client, ARTIFACTS_FILE, PREFIX + '/' + ARTIFACTS_FILE)
